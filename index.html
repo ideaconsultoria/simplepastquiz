@@ -168,11 +168,25 @@
         .modal-content button:hover {
             background-color: #4338ca;
         }
+
+        .timer-display {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #555;
+            padding: 8px 15px;
+            border-radius: 8px;
+            background-color: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div class="quiz-container">
         <h1 class="text-3xl font-bold mb-6 text-gray-800">Past Simple Quiz</h1>
+
+        <div id="timer-display" class="timer-display">00:00</div>
 
         <div id="question-area">
             <p id="question-text" class="question-text"></p>
@@ -185,6 +199,7 @@
         <div id="quiz-summary" class="hidden">
             <h2 class="text-2xl font-bold mb-4 text-gray-700">Quiz Completed!</h2>
             <p id="final-score" class="text-xl text-gray-600 mb-6"></p>
+            <p id="time-taken-display" class="text-lg text-gray-600 mb-6"></p>
             <button id="restart-quiz-button" class="nav-button">Restart Quiz</button>
         </div>
 
@@ -824,6 +839,9 @@
         let answeredCorrectly = false; // Flag to track if the current question was answered correctly
         let allowNext = false; // Flag to control 'Next' button enablement
 
+        let timerSeconds = 0;
+        let timerInterval;
+
         const questionTextElement = document.getElementById('question-text');
         const optionsContainer = document.getElementById('options-container');
         const feedbackMessageElement = document.getElementById('feedback-message');
@@ -836,6 +854,9 @@
         const questionArea = document.getElementById('question-area');
         const finalScoreElement = document.getElementById('final-score');
         const restartQuizButton = document.getElementById('restart-quiz-button');
+        const timerDisplay = document.getElementById('timer-display');
+        const timeTakenDisplay = document.getElementById('time-taken-display');
+
 
         // Modal elements
         const myModal = document.getElementById('myModal');
@@ -857,6 +878,25 @@
                 }
             };
             modalCloseButton.addEventListener('click', closeHandler);
+        }
+
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            timerSeconds = 0;
+            timerDisplay.textContent = formatTime(timerSeconds);
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                timerDisplay.textContent = formatTime(timerSeconds);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
         }
 
         function loadQuestion() {
@@ -910,7 +950,7 @@
                 allowNext = false; // Disallow moving to next question
                 nextButton.disabled = true; // Keep next button disabled
                 tryAgainButton.classList.remove('hidden'); // Show try again button
-                // Highlight the correct answer
+                // Highlight the correct answer (only if it wasn't the chosen one, for clarity)
                 allOptionButtons.forEach(button => {
                     if (button.textContent === correctAnswer) {
                         button.classList.add('correct');
@@ -929,35 +969,23 @@
         }
 
         function tryAgain() {
-            // Re-enable all options except the incorrect one that was previously selected.
-            // Reset colors, but keep the correct one highlighted if it's not the one selected.
-            const allOptionButtons = optionsContainer.querySelectorAll('.option-button');
-            allOptionButtons.forEach(button => {
-                // If the button was incorrect (i.e., the user's wrong choice), remove the incorrect class
-                if (button.classList.contains('incorrect')) {
-                    button.classList.remove('incorrect');
-                }
-                // Always re-enable, unless it's the correct answer which remains highlighted.
-                if (!button.classList.contains('correct')) {
-                     button.classList.remove('disabled');
-                     button.classList.remove('incorrect'); // Ensure no lingering incorrect class
-                     button.classList.remove('correct'); // Ensure no lingering correct class
-                }
-            });
-
-            // Hide feedback and try again button
-            feedbackMessageElement.classList.add('hidden');
-            tryAgainButton.classList.add('hidden');
+            // Reload the current question to allow the student to try again from scratch
+            // This will reset the options, hide feedback, and make buttons clickable again.
+            loadQuestion();
+            // The score is not decremented here, as it's a retry, not a new incorrect answer.
         }
 
 
         function showQuizSummary() {
+            stopTimer(); // Stop the timer when the quiz ends
             questionArea.classList.add('hidden');
             progressDisplay.classList.add('hidden');
             nextButton.classList.add('hidden');
             tryAgainButton.classList.add('hidden');
+            timerDisplay.classList.add('hidden'); // Hide timer
             quizSummary.classList.remove('hidden');
             finalScoreElement.textContent = `You answered ${score} out of ${questions.length} questions correctly!`;
+            timeTakenDisplay.textContent = `Time taken: ${formatTime(timerSeconds)}`;
         }
 
         function resetQuiz() {
@@ -972,7 +1000,9 @@
             nextButton.classList.remove('hidden');
             nextButton.disabled = true; // Disable next button initially
             tryAgainButton.classList.add('hidden'); // Hide try again button initially
+            timerDisplay.classList.remove('hidden'); // Show timer
 
+            startTimer(); // Restart the timer
             loadQuestion();
         }
 
@@ -981,8 +1011,11 @@
         tryAgainButton.addEventListener('click', tryAgain);
         restartQuizButton.addEventListener('click', resetQuiz);
 
-        // Initialize the quiz when the page loads
-        document.addEventListener('DOMContentLoaded', loadQuestion);
+        // Initialize the quiz and start the timer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            startTimer();
+            loadQuestion();
+        });
     </script>
 </body>
 </html>
