@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Past Simple Quiz</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .question-text {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #333;
+            font-weight: 600;
+        }
+        .option-button {
+            background-color: #e0e7ff; /* Light blue */
+            color: #4338ca; /* Darker blue */
+            padding: 15px 20px;
+            margin: 10px auto;
+            border-radius: 8px;
+            border: 2px solid #a5b4fc;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            display: block;
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .option-button:hover:not(.correct):not(.incorrect):not(.disabled) {
+            background-color: #c7d2fe; /* Slightly darker light blue */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .option-button.correct {
+            background-color: #d1fae5; /* Light green */
+            color: #065f46; /* Dark green */
+            border-color: #34d399;
+            pointer-events: none; /* Disable click after selection */
+        }
+        .option-button.incorrect {
+            background-color: #fee2e2; /* Light red */
+            color: #991b1b; /* Dark red */
+            border-color: #ef4444;
+            pointer-events: none; /* Disable click after selection */
+        }
+        .option-button.disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .feedback-message {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .feedback-message.correct {
+            color: #065f46; /* Dark green */
+        }
+        .feedback-message.incorrect {
+            color: #991b1b; /* Dark red */
+        }
+        .score-display {
+            font-size: 1.2rem;
+            margin-top: 25px;
+            color: #555;
+            font-weight: 500;
+        }
+        .navigation-buttons {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .nav-button {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        .nav-button:hover {
+            background-color: #4338ca; /* Darker indigo */
+            transform: translateY(-2px);
+        }
+        .nav-button:disabled {
+            background-color: #a7a7a7;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Modal for messages (instead of alert) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-content p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            color: #555;
+        }
+
+        .modal-content button {
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .modal-content button:hover {
+            background-color: #4338ca;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Past Simple Quiz</h1>
+
+        <div id="question-area">
+            <p id="question-text" class="question-text"></p>
+            <div id="options-container" class="flex flex-col items-center">
+                <!-- Options will be loaded here by JavaScript -->
+            </div>
+            <p id="feedback-message" class="feedback-message hidden"></p>
+        </div>
+
+        <div id="quiz-summary" class="hidden">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Quiz Completed!</h2>
+            <p id="final-score" class="text-xl text-gray-600 mb-6"></p>
+            <button id="restart-quiz-button" class="nav-button">Restart Quiz</button>
+        </div>
+
+        <p id="progress-display" class="score-display">Question <span id="current-q">0</span> of <span id="total-q">0</span></p>
+
+        <div class="navigation-buttons">
+            <button id="try-again-button" class="nav-button hidden">Try Again</button>
+            <button id="next-button" class="nav-button">Next Question</button>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title"></h3>
+            <p id="modal-message"></p>
+            <button id="modal-close-button">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            // Life Story / Place Lived (1-10)
+            {
+                question: "Where ______ you born?",
+                options: ["was", "were", "did", "are"],
+                answer: "were",
+                explanation: "We use 'were' with 'you' for the verb 'to be' in the past simple."
+            },
+            {
+                question: "She _______ live in a small village.",
+                options: ["didn't", "don't", "wasn't", "isn't"],
+                answer: "didn't",
+                explanation: "For negative past simple with action verbs, we use 'didn't + base form'."
+            },
+            {
+                question: "______ they visit Paris last year?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "For past simple questions with action verbs, we use 'Did + subject + base form'."
+            },
+            {
+                question: "My family ______ to a bigger house in 2020.",
+                options: ["move", "moved", "moving", "moves"],
+                answer: "moved",
+                explanation: "The past simple form of 'move' is 'moved'."
+            },
+            {
+                question: "He ______ his childhood in Petrópolis.",
+                options: ["spend", "spended", "spent", "spends"],
+                answer: "spent",
+                explanation: "The past simple form of 'spend' is 'spent'."
+            },
+            {
+                question: "They ______ a lot of friends in their old neighborhood.",
+                options: ["make", "made", "makes", "making"],
+                answer: "made",
+                explanation: "The past simple form of 'make' is 'made'."
+            },
+            {
+                question: "I ______ to a new city when I was ten.",
+                options: ["relocate", "relocated", "relocates", "relocating"],
+                answer: "relocated",
+                explanation: "The past simple form of 'relocate' is 'relocated'."
+            },
+            {
+                question: "______ you enjoy your time in that apartment?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past enjoyment."
+            },
+            {
+                question: "Her parents ______ a cozy house by the lake.",
+                options: ["buy", "bought", "buys", "buying"],
+                answer: "bought",
+                explanation: "The past simple form of 'buy' is 'bought'."
+            },
+            {
+                question: "We ______ not like the small garden.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' (or 'didn't') for negative past simple with action verbs."
+            },
+            // Work Routine / Project Management (11-20)
+            {
+                question: "What time ______ you start work yesterday?",
+                options: ["did", "do", "were", "are"],
+                answer: "did",
+                explanation: "For past simple questions, we use 'did' as the auxiliary verb."
+            },
+            {
+                question: "The project manager ______ the team meeting on Monday.",
+                options: ["lead", "led", "leads", "leading"],
+                answer: "led",
+                explanation: "The past simple form of 'lead' is 'led'."
+            },
+            {
+                question: "We ______ finish the report on time.",
+                options: ["did not", "do not", "was not", "is not"],
+                answer: "did not",
+                explanation: "To form the negative past simple, use 'did not' (or 'didn't') followed by the base form of the verb."
+            },
+            {
+                question: "______ you manage a large team in your previous job?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions in the simple past."
+            },
+            {
+                question: "The company ______ a new software system last month.",
+                options: ["implement", "implemented", "implements", "implementing"],
+                answer: "implemented",
+                explanation: "The past simple form of 'implement' is 'implemented'."
+            },
+            {
+                question: "He ______ many difficult tasks in his last role.",
+                options: ["handle", "handled", "handles", "handling"],
+                answer: "handled",
+                explanation: "The past simple form of 'handle' is 'handled'."
+            },
+            {
+                question: "They ______ not attend the training session.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ the team complete the project successfully?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past actions."
+            },
+            {
+                question: "I ______ a presentation to the stakeholders.",
+                options: ["give", "gave", "gives", "giving"],
+                answer: "gave",
+                explanation: "The past simple form of 'give' is 'gave'."
+            },
+            {
+                question: "She ______ a detailed report for the board.",
+                options: ["write", "wrote", "writes", "writing"],
+                answer: "wrote",
+                explanation: "The past simple form of 'write' is 'wrote'."
+            },
+            // Appearance / Personality Characteristics (21-30)
+            {
+                question: "She ______ short hair when she was young.",
+                options: ["has", "had", "have", "is having"],
+                answer: "had",
+                explanation: "The past simple form of 'have' is 'had'."
+            },
+            {
+                question: "He ______ very shy at school.",
+                options: ["was", "were", "is", "be"],
+                answer: "was",
+                explanation: "For the verb 'to be' in the past simple with 'he/she/it', use 'was'."
+            },
+            {
+                question: "They ______ not friendly at the party.",
+                options: ["was", "were", "did", "are"],
+                answer: "were",
+                explanation: "For the verb 'to be' in the past simple with 'they', use 'were'."
+            },
+            {
+                question: "______ he seem happy with his new look?",
+                options: ["Did", "Does", "Was", "Is"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions in the simple past."
+            },
+            {
+                question: "Her personality ______ a lot after she traveled.",
+                options: ["change", "changed", "changes", "changing"],
+                answer: "changed",
+                explanation: "The past simple form of 'change' is 'changed'."
+            },
+            {
+                question: "I ______ to wear glasses when I was little.",
+                options: ["used", "use", "using", "uses"],
+                answer: "used",
+                explanation: "'Used to' describes past habits."
+            },
+            {
+                question: "He ______ a beard last winter.",
+                options: ["grow", "grew", "grows", "growing"],
+                answer: "grew",
+                explanation: "The past simple form of 'grow' is 'grew'."
+            },
+            {
+                question: "______ she always so cheerful?",
+                options: ["Was", "Were", "Did", "Is"],
+                answer: "Was",
+                explanation: "Use 'Was' for questions about singular past states of being."
+            },
+            {
+                question: "They ______ a lot of energy when they were kids.",
+                options: ["have", "had", "has", "are having"],
+                answer: "had",
+                explanation: "The past simple form of 'have' is 'had'."
+            },
+            {
+                question: "His appearance ______ significantly after he lost weight.",
+                options: ["improve", "improved", "improves", "improving"],
+                answer: "improved",
+                explanation: "The past simple form of 'improve' is 'improved'."
+            },
+            // Routine in the Past (31-40)
+            {
+                question: "Every morning, I ______ up at 6 AM.",
+                options: ["get", "got", "gets", "getting"],
+                answer: "got",
+                explanation: "The past simple form of 'get' is 'got'."
+            },
+            {
+                question: "She ______ breakfast before going to work.",
+                options: ["eat", "ate", "eats", "eating"],
+                answer: "ate",
+                explanation: "The past simple form of 'eat' is 'ate'."
+            },
+            {
+                question: "We ______ not watch TV in the evenings.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ you always walk to school?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past routine."
+            },
+            {
+                question: "He ______ his teeth twice a day.",
+                options: ["brush", "brushed", "brushes", "brushing"],
+                answer: "brushed",
+                explanation: "The past simple form of 'brush' is 'brushed'."
+            },
+            {
+                question: "They ______ a lot of exercise every week.",
+                options: ["do", "did", "does", "doing"],
+                answer: "did",
+                explanation: "The past simple form of 'do' is 'did'."
+            },
+            {
+                question: "I ______ coffee after lunch.",
+                options: ["drink", "drank", "drinks", "drinking"],
+                answer: "drank",
+                explanation: "The past simple form of 'drink' is 'drank'."
+            },
+            {
+                question: "She ______ her friends on weekends.",
+                options: ["meet", "met", "meets", "meeting"],
+                answer: "met",
+                explanation: "The past simple form of 'meet' is 'met'."
+            },
+            {
+                question: "We ______ not go out very often.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ he usually read books before bed?",
+                options: ["Did", "Does", "Was", "Is"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past habits."
+            },
+            // City Lived (41-50)
+            {
+                question: "I ______ in a big city for five years.",
+                options: ["live", "lived", "lives", "living"],
+                answer: "lived",
+                explanation: "The past simple form of 'live' is 'lived'."
+            },
+            {
+                question: "The city ______ much quieter in the past.",
+                options: ["was", "were", "is", "be"],
+                answer: "was",
+                explanation: "Use 'was' for singular past states."
+            },
+            {
+                question: "They ______ not enjoy the busy traffic.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ you like the food in that city?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past preferences."
+            },
+            {
+                question: "She ______ to many museums while living there.",
+                options: ["go", "went", "goes", "going"],
+                answer: "went",
+                explanation: "The past simple form of 'go' is 'went'."
+            },
+            {
+                question: "The public transport system ______ very efficient.",
+                options: ["be", "was", "were", "is"],
+                answer: "was",
+                explanation: "Use 'was' for singular past states."
+            },
+            {
+                question: "We ______ not visit the famous landmarks.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ the climate pleasant there?",
+                options: ["Was", "Were", "Did", "Is"],
+                answer: "Was",
+                explanation: "Use 'Was' for questions about singular past conditions."
+            },
+            {
+                question: "He ______ a lot about the local culture.",
+                options: ["learn", "learned", "learns", "learning"],
+                answer: "learned",
+                explanation: "The past simple form of 'learn' is 'learned'."
+            },
+            {
+                question: "They ______ their time in the old city.",
+                options: ["enjoy", "enjoyed", "enjoys", "enjoying"],
+                answer: "enjoyed",
+                explanation: "The past simple form of 'enjoy' is 'enjoyed'."
+            },
+            // Likes and Dislikes (51-60)
+            {
+                question: "I ______ coffee when I was a child.",
+                options: ["didn't like", "don't like", "wasn't like", "isn't like"],
+                answer: "didn't like",
+                explanation: "Use 'didn't + base form' for negative past simple."
+            },
+            {
+                question: "She ______ reading fiction books.",
+                options: ["love", "loved", "loves", "loving"],
+                answer: "loved",
+                explanation: "The past simple form of 'love' is 'loved'."
+            },
+            {
+                question: "They ______ not enjoy the concert.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "What ______ you enjoy doing last weekend?",
+                options: ["did", "do", "were", "are"],
+                answer: "did",
+                explanation: "Use 'did' for past simple questions."
+            },
+            {
+                question: "He ______ watching horror movies.",
+                options: ["hate", "hated", "hates", "hating"],
+                answer: "hated",
+                explanation: "The past simple form of 'hate' is 'hated'."
+            },
+            {
+                question: "We ______ sports when we were younger.",
+                options: ["like", "liked", "likes", "liking"],
+                answer: "liked",
+                explanation: "The past simple form of 'like' is 'liked'."
+            },
+            {
+                question: "She ______ not prefer sweet food.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ you dislike the cold weather?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past dislikes."
+            },
+            {
+                question: "I ______ to listen to rock music.",
+                options: ["used", "use", "using", "uses"],
+                answer: "used",
+                explanation: "'Used to' describes past habits."
+            },
+            {
+                question: "They ______ spending time outdoors.",
+                options: ["adore", "adored", "adores", "adoring"],
+                answer: "adored",
+                explanation: "The past simple form of 'adore' is 'adored'."
+            },
+            // Commute (61-70)
+            {
+                question: "How ______ you commute to work last year?",
+                options: ["did", "do", "were", "are"],
+                answer: "did",
+                explanation: "Use 'did' for past simple questions about commute methods."
+            },
+            {
+                question: "He ______ by bus every day.",
+                options: ["travel", "traveled", "travels", "traveling"],
+                answer: "traveled",
+                explanation: "The past simple form of 'travel' is 'traveled'."
+            },
+            {
+                question: "She ______ not drive to the office.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ the train usually crowded?",
+                options: ["Was", "Were", "Did", "Is"],
+                answer: "Was",
+                explanation: "Use 'Was' for questions about singular past conditions."
+            },
+            {
+                question: "We ______ to walk to school as children.",
+                options: ["used", "use", "using", "uses"],
+                answer: "used",
+                explanation: "'Used to' describes past habits."
+            },
+            {
+                question: "The journey ______ about an hour.",
+                options: ["take", "took", "takes", "taking"],
+                answer: "took",
+                explanation: "The past simple form of 'take' is 'took'."
+            },
+            {
+                question: "I ______ not miss the long commute.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "______ your commute easier when you worked from home?",
+                options: ["Was", "Were", "Did", "Is"],
+                answer: "Was",
+                explanation: "Use 'Was' for questions about singular past states."
+            },
+            {
+                question: "They ______ their bikes to the office.",
+                options: ["ride", "rode", "rides", "riding"],
+                answer: "rode",
+                explanation: "The past simple form of 'ride' is 'rode'."
+            },
+            {
+                question: "He ______ a taxi when it rained.",
+                options: ["take", "took", "takes", "taking"],
+                answer: "took",
+                explanation: "The past simple form of 'take' is 'took'."
+            },
+            // House Description / Advertisement (71-80)
+            {
+                question: "The house ______ a big garden.",
+                options: ["has", "had", "have", "is having"],
+                answer: "had",
+                explanation: "The past simple form of 'have' is 'had'."
+            },
+            {
+                question: "It ______ three bedrooms and two bathrooms.",
+                options: ["had", "has", "have", "is having"],
+                answer: "had",
+                explanation: "Use 'had' to describe past possessions or features."
+            },
+            {
+                question: "The advertisement ______ a beautiful photo of the kitchen.",
+                options: ["show", "showed", "shows", "showing"],
+                answer: "showed",
+                explanation: "The past simple form of 'show' is 'showed'."
+            },
+            {
+                question: "They ______ not interested in buying the apartment.",
+                options: ["was", "were", "did", "are"],
+                answer: "were",
+                explanation: "Use 'were' for the past simple of 'to be' with 'they'."
+            },
+            {
+                question: "The old house ______ a lot of history.",
+                options: ["have", "has", "had", "is having"],
+                answer: "had",
+                explanation: "The past simple of 'have' is 'had'."
+            },
+            {
+                question: "______ the living room spacious?",
+                options: ["Was", "Were", "Did", "Is"],
+                answer: "Was",
+                explanation: "Use 'Was' for questions about singular past qualities."
+            },
+            {
+                question: "The previous owners ______ the kitchen recently.",
+                options: ["renovate", "renovated", "renovates", "renovating"],
+                answer: "renovated",
+                explanation: "The past simple form of 'renovate' is 'renovated'."
+            },
+            {
+                question: "The advertisement ______ a detailed floor plan.",
+                options: ["include", "included", "includes", "including"],
+                answer: "included",
+                explanation: "The past simple form of 'include' is 'included'."
+            },
+            {
+                question: "We ______ not like the view from the balcony.",
+                options: ["did", "do", "was", "were"],
+                answer: "did",
+                explanation: "Use 'did not' for negative past simple."
+            },
+            {
+                question: "The house ______ very bright with natural light.",
+                options: ["is", "was", "were", "be"],
+                answer: "was",
+                explanation: "Use 'was' for singular past states."
+            },
+            // Petrópolis (81-90)
+            {
+                question: "The imperial family often ______ summers in Petrópolis.",
+                options: ["spend", "spent", "spends", "spending"],
+                answer: "spent",
+                explanation: "The past simple form of 'spend' is 'spent'."
+            },
+            {
+                question: "The museum in Petrópolis ______ many historical artifacts.",
+                options: ["display", "displayed", "displays", "displaying"],
+                answer: "displayed",
+                explanation: "The past simple form of 'display' is 'displayed'."
+            },
+            {
+                question: "______ you visit the Imperial Palace when you were in Petrópolis?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions in the simple past."
+            },
+            {
+                question: "The old church in Petrópolis ______ built in the 19th century.",
+                options: ["was", "were", "is", "be"],
+                answer: "was",
+                explanation: "Use 'was' for the past simple of 'to be' with singular subjects like 'church'."
+            },
+            {
+                question: "We ______ not find a parking spot near the cathedral in Petrópolis.",
+                options: ["did", "do", "were", "are"],
+                answer: "did",
+                explanation: "Use 'did not' (or 'didn't') for negative past simple."
+            },
+            {
+                question: "Many tourists ______ the beautiful gardens there.",
+                options: ["admire", "admired", "admires", "admiring"],
+                answer: "admired",
+                explanation: "The past simple form of 'admire' is 'admired'."
+            },
+            {
+                question: "The city ______ originally a summer residence.",
+                options: ["is", "was", "were", "be"],
+                answer: "was",
+                explanation: "Use 'was' for singular past states."
+            },
+            {
+                question: "______ they enjoy the cool climate of Petrópolis?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for questions about past enjoyment."
+            },
+            {
+                question: "I ______ a horse-drawn carriage ride there.",
+                options: ["take", "took", "takes", "taking"],
+                answer: "took",
+                explanation: "The past simple form of 'take' is 'took'."
+            },
+            {
+                question: "The historic buildings ______ well-preserved.",
+                options: ["is", "was", "were", "be"],
+                answer: "were",
+                explanation: "Use 'were' for plural past states."
+            },
+            // A1 and A2 Vocabulary / Mixed (91-100)
+            {
+                question: "She ______ a new car last month.",
+                options: ["buy", "bought", "buys", "buying"],
+                answer: "bought",
+                explanation: "The past simple form of 'buy' is 'bought'."
+            },
+            {
+                question: "I ______ meet my friends yesterday.",
+                options: ["didn't", "don't", "wasn't", "isn't"],
+                answer: "didn't",
+                explanation: "Use 'didn't + base form' for negative past simple."
+            },
+            {
+                question: "______ you go to the party?",
+                options: ["Did", "Do", "Were", "Are"],
+                answer: "Did",
+                explanation: "Use 'Did' for past simple questions."
+            },
+            {
+                question: "They ______ happy with the results.",
+                options: ["was", "were", "is", "are"],
+                answer: "were",
+                explanation: "For the verb 'to be' in the past simple with 'they', use 'were'."
+            },
+            {
+                question: "He ______ his homework after dinner.",
+                options: ["do", "did", "does", "doing"],
+                answer: "did",
+                explanation: "The past simple form of 'do' is 'did'."
+            },
+            {
+                question: "The children ______ in the park.",
+                options: ["play", "played", "plays", "playing"],
+                answer: "played",
+                explanation: "The past simple form of 'play' is 'played'."
+            },
+            {
+                question: "We ______ not see the movie.",
+                options: ["did", "do", "were", "are"],
+                answer: "did",
+                explanation: "Use 'did not' (or 'didn't') for negative past simple."
+            },
+            {
+                question: "______ she finish her book?",
+                options: ["Did", "Does", "Was", "Is"],
+                answer: "Did",
+                explanation: "Use 'Did' for past simple questions."
+            },
+            {
+                question: "My cat ______ all the food.",
+                options: ["eat", "ate", "eats", "eating"],
+                answer: "ate",
+                explanation: "The past simple form of 'eat' is 'ate'."
+            },
+            {
+                question: "I ______ to the beach last summer.",
+                options: ["go", "went", "goes", "going"],
+                answer: "went",
+                explanation: "The past simple form of 'go' is 'went'."
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answeredCorrectly = false; // Flag to track if the current question was answered correctly
+        let allowNext = false; // Flag to control 'Next' button enablement
+
+        const questionTextElement = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessageElement = document.getElementById('feedback-message');
+        const progressDisplay = document.getElementById('progress-display');
+        const currentQSpan = document.getElementById('current-q');
+        const totalQSpan = document.getElementById('total-q');
+        const nextButton = document.getElementById('next-button');
+        const tryAgainButton = document.getElementById('try-again-button');
+        const quizSummary = document.getElementById('quiz-summary');
+        const questionArea = document.getElementById('question-area');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartQuizButton = document.getElementById('restart-quiz-button');
+
+        // Modal elements
+        const myModal = document.getElementById('myModal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseButton = document.getElementById('modal-close-button');
+
+        // Function to show custom modal (replaces alert/confirm)
+        function showModal(title, message, callback = null) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            myModal.style.display = 'flex'; // Use flex to center content
+
+            const closeHandler = () => {
+                myModal.style.display = 'none';
+                modalCloseButton.removeEventListener('click', closeHandler);
+                if (callback) {
+                    callback();
+                }
+            };
+            modalCloseButton.addEventListener('click', closeHandler);
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex < questions.length) {
+                const currentQuestion = questions[currentQuestionIndex];
+                questionTextElement.textContent = currentQuestion.question;
+                optionsContainer.innerHTML = ''; // Clear previous options
+                feedbackMessageElement.classList.add('hidden');
+                feedbackMessageElement.textContent = '';
+                tryAgainButton.classList.add('hidden'); // Hide try again button
+                nextButton.disabled = true; // Disable next until an answer is given
+                allowNext = false; // Disallow next until correctly answered
+
+                // Update progress display
+                currentQSpan.textContent = currentQuestionIndex + 1;
+                totalQSpan.textContent = questions.length;
+
+                currentQuestion.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-button');
+                    button.addEventListener('click', () => checkAnswer(button, option, currentQuestion.answer, currentQuestion.explanation));
+                    optionsContainer.appendChild(button);
+                });
+            } else {
+                showQuizSummary();
+            }
+        }
+
+        function checkAnswer(selectedButton, selectedOption, correctAnswer, explanation) {
+            // Disable all option buttons after selection
+            const allOptionButtons = optionsContainer.querySelectorAll('.option-button');
+            allOptionButtons.forEach(button => button.classList.add('disabled'));
+
+            if (selectedOption === correctAnswer) {
+                selectedButton.classList.add('correct');
+                feedbackMessageElement.textContent = 'Correct! ' + explanation;
+                feedbackMessageElement.classList.remove('hidden', 'incorrect');
+                feedbackMessageElement.classList.add('correct');
+                score++;
+                answeredCorrectly = true;
+                allowNext = true; // Allow moving to next question
+                nextButton.disabled = false; // Enable next button
+                tryAgainButton.classList.add('hidden'); // Hide try again button on correct answer
+            } else {
+                selectedButton.classList.add('incorrect');
+                feedbackMessageElement.textContent = 'Incorrect. Please try again. ' + explanation;
+                feedbackMessageElement.classList.remove('hidden', 'correct');
+                feedbackMessageElement.classList.add('incorrect');
+                answeredCorrectly = false;
+                allowNext = false; // Disallow moving to next question
+                nextButton.disabled = true; // Keep next button disabled
+                tryAgainButton.classList.remove('hidden'); // Show try again button
+                // Highlight the correct answer
+                allOptionButtons.forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('correct');
+                    }
+                });
+            }
+        }
+
+        function nextQuestion() {
+            if (allowNext) { // Only proceed if the current question was answered correctly
+                currentQuestionIndex++;
+                loadQuestion();
+            } else {
+                showModal("Wait!", "Please answer the current question correctly before moving to the next one.");
+            }
+        }
+
+        function tryAgain() {
+            // Re-enable all options except the incorrect one that was previously selected.
+            // Reset colors, but keep the correct one highlighted if it's not the one selected.
+            const allOptionButtons = optionsContainer.querySelectorAll('.option-button');
+            allOptionButtons.forEach(button => {
+                // If the button was incorrect (i.e., the user's wrong choice), remove the incorrect class
+                if (button.classList.contains('incorrect')) {
+                    button.classList.remove('incorrect');
+                }
+                // Always re-enable, unless it's the correct answer which remains highlighted.
+                if (!button.classList.contains('correct')) {
+                     button.classList.remove('disabled');
+                     button.classList.remove('incorrect'); // Ensure no lingering incorrect class
+                     button.classList.remove('correct'); // Ensure no lingering correct class
+                }
+            });
+
+            // Hide feedback and try again button
+            feedbackMessageElement.classList.add('hidden');
+            tryAgainButton.classList.add('hidden');
+        }
+
+
+        function showQuizSummary() {
+            questionArea.classList.add('hidden');
+            progressDisplay.classList.add('hidden');
+            nextButton.classList.add('hidden');
+            tryAgainButton.classList.add('hidden');
+            quizSummary.classList.remove('hidden');
+            finalScoreElement.textContent = `You answered ${score} out of ${questions.length} questions correctly!`;
+        }
+
+        function resetQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            answeredCorrectly = false;
+            allowNext = false;
+
+            quizSummary.classList.add('hidden');
+            questionArea.classList.remove('hidden');
+            progressDisplay.classList.remove('hidden');
+            nextButton.classList.remove('hidden');
+            nextButton.disabled = true; // Disable next button initially
+            tryAgainButton.classList.add('hidden'); // Hide try again button initially
+
+            loadQuestion();
+        }
+
+        // Event Listeners
+        nextButton.addEventListener('click', nextQuestion);
+        tryAgainButton.addEventListener('click', tryAgain);
+        restartQuizButton.addEventListener('click', resetQuiz);
+
+        // Initialize the quiz when the page loads
+        document.addEventListener('DOMContentLoaded', loadQuestion);
+    </script>
+</body>
+</html>
